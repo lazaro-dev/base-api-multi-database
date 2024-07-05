@@ -1,0 +1,14 @@
+# .docker
+.git
+vendor
+vendor/
+**/vendor/
+**/vendor
+dev.sh
+**/dist/
+../node_modules
+../vendor
+./vendor
+
+../dev.sh
+**/dev.sh

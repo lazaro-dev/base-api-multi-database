@@ -1,0 +1,77 @@
+name: api-multi-database-main
+
+volumes:
+  phpmyadmin_data:
+
+networks:
+  api-multi-database-net:
+    driver: bridge
+
+services:
+  app:
+    container_name: api-multi-database-app
+    build:
+      context: ..
+      dockerfile: .docker/Dockerfile.dev
+    restart: unless-stopped
+    working_dir: /var/www
+    volumes:
+      - ../:/var/www
+      - /var/www/vendor
+    user: "1000:1000"
+    depends_on:
+      - mysql
+    networks:
+      - api-multi-database-net
+
+  nginx:
+    container_name: api-multi-database-nginx
+    image: nginx:1.25.2
+    restart: unless-stopped
+    depends_on:
+      - app
+    ports:
+      - "8080:80"
+    volumes:
+      - ../:/var/www
+      - ./nginx/:/etc/nginx/conf.d/
+      - /var/www/vendor
+      - "../public/:/var/www/public:ro"
+    networks:
+      - api-multi-database-net
+
+  mysql:
+    image: mysql:8.0.20
+    command: mysqld --default-authentication-plugin=mysql_native_password --character-set-server=utf8mb4 --collation-server=utf8mb4_unicode_ci
+    container_name: api-multi-database-mysql
+    restart: unless-stopped
+    tty: true
+    ports:
+      - "3306:3306"
+    cap_add:
+      - SYS_NICE
+    environment:
+      MYSQL_DATABASE: system_database
+      MYSQL_PASSWORD: admin
+      MYSQL_ROOT_PASSWORD: admin
+      TZ: America/Sao_Paulo
+    volumes:
+      - ./mysql_data/dbdata:/var/lib/mysql
+    networks:
+      - api-multi-database-net
+
+  phpmyadmin:
+    image: phpmyadmin/phpmyadmin:latest
+    restart: unless-stopped
+    container_name: api-multi-database-phpmyadmin
+    ports:
+      - 8085:80
+    environment:
+      # MYSQL_ROOT_PASSWORD: admin
+      PMA_HOST: mysql
+    volumes:
+      - phpmyadmin_data:/var/www/html/
+    depends_on:
+      - mysql
+    networks:
+      - api-multi-database-net
